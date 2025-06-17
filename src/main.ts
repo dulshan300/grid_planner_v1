@@ -137,36 +137,52 @@ function updateMouseLoc(clientX: number, clientY: number) {
 
 
 function drawCanvasItems() {
+  const { objects, zoom, selectedObjectIndex } = state;
+  const highlightWidth = 2 / zoom; // Calculate once for all objects
 
-  state.objects.forEach((item, i) => {
-    // draw the object
+  ctx.save(); // Save the default state
 
-    switch (item.type) {
+  for (let i = 0; i < objects.length; i++) {
+    const item = objects[i];
+    const { type, loc, meta } = item;
+    const isHighlighted = item.isMouseOn || selectedObjectIndex === i;
+
+    switch (type) {
       case ObjectType.Rectangle:
-        // draw a rectangle       
+        // Draw rectangle fill
+        ctx.fillStyle = meta.color;
+        ctx.fillRect(loc.x, loc.y, meta.width, meta.height);
 
-        ctx.beginPath();
-        ctx.rect(item.loc.x, item.loc.y, item.meta.width, item.meta.height);
-        ctx.fillStyle = item.meta.color;
-        ctx.fill()
-
-        if (item.isMouseOn || state.selectedObjectIndex === i) {
+        // Draw highlight if needed
+        if (isHighlighted) {
           ctx.strokeStyle = "red";
-          ctx.lineWidth = 2 / state.zoom;
+          ctx.lineWidth = highlightWidth;
+          ctx.strokeRect(loc.x, loc.y, meta.width, meta.height);
+        }
+        break;
+
+      // Add other object types here as needed
+      case ObjectType.Circle:
+        // Example for circle drawing
+        ctx.beginPath();
+        ctx.arc(loc.x, loc.y, meta.radius, 0, Math.PI * 2);
+        ctx.fillStyle = meta.color;
+        ctx.fill();
+
+        if (isHighlighted) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = highlightWidth;
           ctx.stroke();
         }
-
-
         break;
 
       default:
         break;
     }
+  }
 
-  });
-
+  ctx.restore(); // Restore the default state
 }
-
 
 const handleMouseDown = (e: MouseEvent) => {
   if (e.button === 1) {
