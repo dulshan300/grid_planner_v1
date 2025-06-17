@@ -1,3 +1,5 @@
+import { easeOutQuad } from "./utils/helper";
+import type { Status } from "./lnc/interfaces";
 import "./style.scss";
 
 // we are creating a canvas base grid, which has the abilty to pan and zoom in/out.
@@ -8,25 +10,6 @@ const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
 
 // create a 2D rendering context for the canvas
 const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface Status {
-  isDragging: boolean;
-  startX: number;
-  startY: number;
-  zoom: number;
-  offsetX: number;
-  offsetY: number;
-  mouse: Point;
-  animationId: null | number;
-  objcts: Array<Object>;
-
-
-}
 
 const state: Status = {
   isDragging: false,
@@ -206,7 +189,13 @@ init();
 
 // ui functions
 app.addBlock = () => {
-  console.log("block added");
+
+  const visibleArea = getVisibleArea();
+  
+
+
+
+
 };
 
 app.resetView = () => {
@@ -229,7 +218,7 @@ app.resetView = () => {
     state.offsetY = startOffsetY + (canvas.height / 2 - startOffsetY) * easedProgress;
     state.zoom = startZoom + (1 - startZoom) * easedProgress;
 
-    
+
 
     draw();
 
@@ -242,6 +231,4 @@ app.resetView = () => {
 
 };
 
-function easeOutQuad(t: number) {
-  return t * (2 - t);
-}
+
