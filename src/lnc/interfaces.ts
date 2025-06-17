@@ -7,9 +7,27 @@ export interface Status {
   startX: number;
   startY: number;
   zoom: number;
+  gridBlockSize: number;
   offsetX: number;
   offsetY: number;
   mouse: Point;
   animationId: null | number;
-  objcts: Array<Object>;
+  objectDraging?: boolean;
+  selectedObjectIndex?: number;
+  objects: Array<CanvasObject>;
+
 }
+
+export enum ObjectType {
+  Circle,
+  Rectangle,
+  Line
+}
+
+
+export interface CanvasObject {
+  type: ObjectType;
+  loc: Point
+  meta: Object | any;
+  isMouseOn?: boolean;
+};

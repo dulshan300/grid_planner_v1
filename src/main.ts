@@ -1,5 +1,5 @@
-import { easeOutQuad } from "./utils/helper";
-import type { Status } from "./lnc/interfaces";
+import { easeOutQuad, getRandomColor, leap } from "./utils/helper";
+import { ObjectType, type CanvasObject, type Status } from "./lnc/interfaces";
 import "./style.scss";
 
 // we are creating a canvas base grid, which has the abilty to pan and zoom in/out.
@@ -16,11 +16,12 @@ const state: Status = {
   startX: 0,
   startY: 0,
   zoom: 1,
+  gridBlockSize: 50,
   offsetX: 0,
   offsetY: 0,
   mouse: { x: 0, y: 0 },
   animationId: null,
-  objcts: [],
+  objects: [],
 };
 
 const init = () => {
@@ -36,32 +37,17 @@ const draw = () => {
   ctx.translate(state.offsetX, state.offsetY);
   ctx.scale(state.zoom, state.zoom);
 
-  drawGrid(50);
+  drawGrid();
 
   drawCanvasItems();
 
-  drawPointer();
+  // drawPointer();
 
   ctx.restore();
 };
 
-function drawCanvasItems() {
-  // Blue square
-  ctx.fillStyle = "blue";
-  ctx.fillRect(50, 50, 100, 100);
 
-  // Red circle
-  ctx.fillStyle = "red";
-  ctx.beginPath();
-  ctx.arc(250, 150, 70, 0, Math.PI * 2);
-  ctx.fill();
 
-  // Text
-  ctx.font = "30px Arial";
-  ctx.fillStyle = "black";
-  ctx.fillText("Pan Me!", 100, 280);
-  ctx.fillText("(0,0) is here", 0, 0);
-}
 
 const resizeCanvas = () => {
   canvas.width = window.innerWidth;
@@ -75,6 +61,7 @@ const resizeCanvas = () => {
 const addEventListener = () => {
   window.addEventListener("resize", resizeCanvas);
   canvas.addEventListener("mousedown", handleMouseDown);
+  canvas.addEventListener("mousedown", handleMouseDownForObject.bind(this));
   canvas.addEventListener("mousemove", handleMouseMove);
   canvas.addEventListener("mouseup", handleMouseUp);
   canvas.addEventListener("wheel", handleMouseWheel);
@@ -83,7 +70,10 @@ const addEventListener = () => {
   });
 };
 
-const drawGrid = (blockSize: number) => {
+const drawGrid = () => {
+
+  const blockSize = state.gridBlockSize;
+
   ctx.strokeStyle = "#eee";
   ctx.lineWidth = 1;
 
@@ -145,6 +135,39 @@ function updateMouseLoc(clientX: number, clientY: number) {
   state.mouse.y = (clientY - state.offsetY) / state.zoom;
 }
 
+
+function drawCanvasItems() {
+
+  state.objects.forEach((item) => {
+    // draw the object
+
+    switch (item.type) {
+      case ObjectType.Rectangle:
+        // draw a rectangle       
+
+        ctx.beginPath();
+        ctx.rect(item.loc.x, item.loc.y, item.meta.width, item.meta.height);
+        ctx.fillStyle = item.meta.color;
+        ctx.fill()
+
+        if (item.isMouseOn) {
+          ctx.strokeStyle = "red";
+          ctx.lineWidth = 2 / state.zoom;
+          ctx.stroke();
+        }
+
+
+        break;
+
+      default:
+        break;
+    }
+
+  });
+
+}
+
+
 const handleMouseDown = (e: MouseEvent) => {
   if (e.button === 1) {
     state.isDragging = true;
@@ -152,25 +175,87 @@ const handleMouseDown = (e: MouseEvent) => {
     state.startY = e.clientY;
   }
 };
+
+const handleMouseDownForObject = (e: MouseEvent) => {
+  e.preventDefault();
+  // check if the mouse is over an object
+  // if it is, set the object as the selected object
+  if (e.button === 0) {
+
+    state.objects.forEach((item, i) => {
+      if (item.isMouseOn) {
+        state.objectDraging = true;
+        state.selectedObjectIndex = i;
+      }
+    });
+
+  }
+}
+
+
+
 const handleMouseMove = (e: MouseEvent) => {
+  const { gridBlockSize, objects, isDragging, mouse } = state;
   updateMouseLoc(e.clientX, e.clientY);
 
-  if (state.isDragging) {
+  // Handle canvas panning
+  if (isDragging) {
     const dx = e.clientX - state.startX;
     const dy = e.clientY - state.startY;
-
     state.offsetX += dx;
     state.offsetY += dy;
-
     state.startX = e.clientX;
     state.startY = e.clientY;
   }
 
-  draw();
+  // Check for mouse over and handle object dragging
+  const mouseX = mouse.x;
+  const mouseY = mouse.y;
+  let needsRedraw = false;
+
+  for (let i = 0; i < objects.length; i++) {
+    const item = objects[i];
+    const { x, y } = item.loc;
+    const { width, height } = item.meta;
+
+    // Check if mouse is over the object
+    const isMouseOver = (
+      x < mouseX &&
+      x + width > mouseX &&
+      y < mouseY &&
+      y + height > mouseY
+    );
+
+    // Only update if state changed to avoid unnecessary redraws
+    if (item.isMouseOn !== isMouseOver) {
+      item.isMouseOn = isMouseOver;
+      needsRedraw = true;
+    }
+
+    // Handle object dragging
+    if (i === state.selectedObjectIndex && state.objectDraging) {
+      const newX = Math.floor((mouseX - width / 2) / gridBlockSize) * gridBlockSize;
+      const newY = Math.floor((mouseY - height / 2) / gridBlockSize) * gridBlockSize;
+
+      // Only update if position changed
+      if (item.loc.x !== newX || item.loc.y !== newY) {
+        item.loc.x = newX;
+        item.loc.y = newY;
+        needsRedraw = true;
+      }
+    }
+  }
+
+  // Only redraw if something changed
+  if (needsRedraw || isDragging) {
+    draw();
+  }
 };
 
 const handleMouseUp = (e: MouseEvent) => {
   state.isDragging = false;
+  state.objectDraging = false;
+  state.selectedObjectIndex = undefined;
 };
 
 function handleMouseWheel(this: HTMLCanvasElement, e: WheelEvent) {
@@ -188,15 +273,6 @@ function handleMouseWheel(this: HTMLCanvasElement, e: WheelEvent) {
 init();
 
 // ui functions
-app.addBlock = () => {
-
-  const visibleArea = getVisibleArea();
-  
-
-
-
-
-};
 
 app.resetView = () => {
 
@@ -230,5 +306,42 @@ app.resetView = () => {
   state.animationId = requestAnimationFrame(animate);
 
 };
+
+
+app.addBlock = () => {
+
+  const { gridBlockSize, objects } = state;
+  const visibleArea = getVisibleArea();
+
+  // Calculate safe bounds (accounting for block size padding)
+  const minX = visibleArea.left + gridBlockSize;
+  const maxX = visibleArea.right - gridBlockSize;
+  const minY = visibleArea.top + gridBlockSize;
+  const maxY = visibleArea.bottom - gridBlockSize;
+
+  // Generate random position snapped to grid
+  const randomX = Math.random();
+  const randomY = Math.random();
+
+  // need to add a rectangle to the state.objects array
+  const newBlock: CanvasObject = {
+    type: ObjectType.Rectangle,
+    isMouseOn: false,
+    loc: {
+      x: Math.floor(leap(minX, maxX, randomX) / gridBlockSize) * gridBlockSize,
+      y: Math.floor(leap(minY, maxY, randomY) / gridBlockSize) * gridBlockSize
+    },
+    meta: {
+      width: 100,
+      height: gridBlockSize,
+      color: getRandomColor(),
+    }
+  };
+
+  objects.push(newBlock);
+
+  draw();
+};
+
 
 
