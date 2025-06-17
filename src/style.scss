@@ -1,9 +1,40 @@
-*{
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
-body{
+body {
+	overflow: hidden;
+}
+
+#myCanvas{
+  background: #fff;
+}
+
+.tools {
+	position: fixed;
+	top: 10px;
+	right: 10px;
+
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: #ffff;
+	border-radius: 5px;
   overflow: hidden;
+  border: 2px solid rgba(gray,0.2);
+
+	button {
+		appearance: none;
+		cursor: pointer;
+		padding: 8px;
+		border: none;
+		background-color: transparent;
+		color: gray;
+
+		&:hover {
+			background-color: rgba(skyblue,0.2);
+		}
+	}
 }
