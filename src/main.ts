@@ -138,7 +138,7 @@ function updateMouseLoc(clientX: number, clientY: number) {
 
 function drawCanvasItems() {
 
-  state.objects.forEach((item) => {
+  state.objects.forEach((item, i) => {
     // draw the object
 
     switch (item.type) {
@@ -150,7 +150,7 @@ function drawCanvasItems() {
         ctx.fillStyle = item.meta.color;
         ctx.fill()
 
-        if (item.isMouseOn) {
+        if (item.isMouseOn || state.selectedObjectIndex === i) {
           ctx.strokeStyle = "red";
           ctx.lineWidth = 2 / state.zoom;
           ctx.stroke();
